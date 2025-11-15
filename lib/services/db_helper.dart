@@ -200,7 +200,7 @@ class JishoDB {
           LIMIT 30
           ''',
           [
-            'keb:${query}* OR reb:${query}*',
+            'keb:$query* OR reb:$query*',
           ], // Focus on keb/reb for Japanese; prefix for starts-with, implicit for contains
         );
         addCandidates(ftsMatches);
@@ -245,7 +245,7 @@ class JishoDB {
           LIMIT 30
           ''',
           [
-            'gloss:${lowerQuery}* OR gloss:$lowerQuery',
+            'gloss:$lowerQuery* OR gloss:$lowerQuery',
           ], // Prefix * and simple term for contains
         );
         addCandidates(ftsMatches);
