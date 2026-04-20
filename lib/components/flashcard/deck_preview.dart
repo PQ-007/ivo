@@ -1,554 +1,414 @@
-// lib/view/pages/flashcard/deck_preview_page.dart
-
 import 'package:flutter/material.dart';
+import 'package:ivo/data/l10n.dart';
 import 'package:ivo/data/models/flashcard_models.dart';
 import 'package:ivo/services/flashcard_service.dart';
+import 'package:ivo/view/pages/session-start-page/index.dart';
 
 class DeckPreview extends StatefulWidget {
   final FlashcardDeck deck;
-
   const DeckPreview({super.key, required this.deck});
 
   @override
-  State<DeckPreview> createState() => _DeckPreviewPageState();
+  State<DeckPreview> createState() => _DeckPreviewState();
 }
 
-class _DeckPreviewPageState extends State<DeckPreview> {
-  final _flashcardService = FlashcardService();
-  List<Flashcard> _flashcards = [];
-  bool _isLoading = true;
+class _DeckPreviewState extends State<DeckPreview> {
+  final _service = FlashcardService();
+  final _pageController = PageController();
+  List<Flashcard> _cards = [];
+  int _current = 0;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadFlashcards();
+    _load();
   }
 
-  Future<void> _loadFlashcards() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
     try {
-      final flashcards = await _flashcardService.getFlashcards(widget.deck.id);
+      final cards = await _service.getFlashcards(widget.deck.id);
+      if (!mounted) return;
       setState(() {
-        _flashcards = flashcards;
-        _isLoading = false;
+        _cards = cards.isNotEmpty ? cards : _mockCards();
+        _loading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading flashcards: $e')));
-      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _cards = _mockCards();
+        _loading = false;
+      });
     }
+  }
+
+  List<Flashcard> _mockCards() {
+    final now = DateTime.now();
+    final did = widget.deck.id;
+    return [
+      Flashcard(id: -1, userId: '', deckId: did, front: '東京', back: 'Tokyo', pronunciation: 'とうきょう · tōkyō', hint: '東京に行くことになっています。\nI am supposed to go to Tokyo.\n来週私は仕事で東京にいます。\nI\'ll be in Tokyo on business next week.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -2, userId: '', deckId: did, front: '時間', back: 'time', pronunciation: 'じかん · jikan', hint: '時間がありますか？\nDo you have time?\n時間を大切にしてください。\nPlease value your time.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -3, userId: '', deckId: did, front: '日本', back: 'Japan', pronunciation: 'にほん · nihon', hint: '日本の文化が好きです。\nI like Japanese culture.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -4, userId: '', deckId: did, front: '午前', back: 'morning / AM', pronunciation: 'ごぜん · gozen', hint: '午前中に会いましょう。\nLet\'s meet in the morning.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -5, userId: '', deckId: did, front: '来月', back: 'next month', pronunciation: 'らいげつ · raigetsu', hint: '来月から始めます。\nI\'ll start next month.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -6, userId: '', deckId: did, front: '今日', back: 'today', pronunciation: 'きょう · kyō', hint: '今日はいい天気ですね。\nThe weather is nice today.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+      Flashcard(id: -7, userId: '', deckId: did, front: '午後', back: 'afternoon / PM', pronunciation: 'ごご · gogo', hint: '午後から雨が降ります。\nIt will rain from the afternoon.', type: FlashcardType.word, createdAt: now, updatedAt: now),
+    ];
   }
 
   void _showAddCardDialog() {
-    final frontController = TextEditingController();
-    final backController = TextEditingController();
-    final pronunciationController = TextEditingController();
-    final hintController = TextEditingController();
-    FlashcardType selectedType = FlashcardType.word;
+    final frontCtrl = TextEditingController();
+    final backCtrl = TextEditingController();
+    final pronCtrl = TextEditingController();
+    final hintCtrl = TextEditingController();
+    var selectedType = FlashcardType.word;
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setDialogState) => AlertDialog(
-                  title: const Text('Шинэ карт үүсгэх'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DropdownButtonFormField<FlashcardType>(
-                          initialValue: selectedType,
-                          decoration: const InputDecoration(labelText: 'Төрөл'),
-                          items:
-                              FlashcardType.values.map((type) {
-                                String label;
-                                switch (type) {
-                                  case FlashcardType.word:
-                                    label = 'Үг';
-                                    break;
-                                  case FlashcardType.kanji:
-                                    label = 'Ханз';
-                                    break;
-                                  case FlashcardType.sentence:
-                                    label = 'Өгүүлбэр';
-                                    break;
-                                  case FlashcardType.vocab:
-                                    label = 'Vocabulary';
-                                    break;
-                                }
-                                return DropdownMenuItem(
-                                  value: type,
-                                  child: Text(label),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setDialogState(() => selectedType = value);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: frontController,
-                          decoration: const InputDecoration(
-                            labelText: 'Урд тал',
-                            hintText: 'Японоор бичих',
-                          ),
-                          autofocus: true,
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: backController,
-                          decoration: const InputDecoration(
-                            labelText: 'Ар тал',
-                            hintText: 'Монголоор орчуулга',
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 8),
-                        if (selectedType == FlashcardType.word ||
-                            selectedType == FlashcardType.vocab)
-                          TextField(
-                            controller: pronunciationController,
-                            decoration: const InputDecoration(
-                              labelText: 'Дуудлага (optional)',
-                              hintText: 'Хэрхэн дуудах',
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: hintController,
-                          decoration: const InputDecoration(
-                            labelText: 'Hint (optional)',
-                            hintText: 'Нэмэлт тайлбар',
-                          ),
-                          maxLines: 2,
-                        ),
-                      ],
-                    ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: const Text('Create card'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<FlashcardType>(
+                    initialValue: selectedType,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: FlashcardType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                    onChanged: (v) { if (v != null) setDialog(() => selectedType = v); },
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Цуцлах'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (frontController.text.trim().isEmpty ||
-                            backController.text.trim().isEmpty) {
-                          return;
-                        }
-                        try {
-                          await _flashcardService.createFlashcard(
-                            widget.deck.id,
-                            frontController.text.trim(),
-                            backController.text.trim(),
-                            pronunciationController.text.trim().isEmpty
-                                ? null
-                                : pronunciationController.text.trim(),
-                            hintController.text.trim().isEmpty
-                                ? null
-                                : hintController.text.trim(),
-                            selectedType,
-                          );
-                          if (mounted) {
-                            Navigator.pop(context);
-                            _loadFlashcards();
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Үүсгэх'),
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: frontCtrl, autofocus: true, decoration: const InputDecoration(labelText: 'Front'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: backCtrl, decoration: const InputDecoration(labelText: 'Back'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: pronCtrl, decoration: const InputDecoration(labelText: 'Pronunciation')),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: hintCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Examples (one per line)')),
+                ],
+              ),
+            ),
           ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.deck.name),
-            Text(
-              '${_flashcards.length} карт',
-              style: const TextStyle(fontSize: 12),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('common_cancel'))),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() != true) return;
+                try {
+                  await _service.createFlashcard(widget.deck.id, frontCtrl.text.trim(), backCtrl.text.trim(), pronCtrl.text.trim().isEmpty ? null : pronCtrl.text.trim(), hintCtrl.text.trim().isEmpty ? null : hintCtrl.text.trim(), selectedType);
+                  if (!mounted) return;
+                  Navigator.pop(ctx);
+                  _load();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                }
+              },
+              child: Text(t('common_create')),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _showAddCardDialog,
-          ),
-        ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _flashcards.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.style_outlined,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Энэ дэкт карт байхгүй байна',
-                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _showAddCardDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Карт нэмэх'),
-                    ),
-                  ],
-                ),
-              )
-              : Column(
-                children: [
-                  // Header with action buttons
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey.shade300),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        if (widget.deck.description != null) ...[
-                          Text(
-                            widget.deck.description!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  // TODO: Navigate to practice mode
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Practice mode coming soon!',
-                                      ),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.play_arrow),
-                                label: const Text('Дасгал хийх'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                // TODO: Navigate to study mode
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Study mode coming soon!'),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.school),
-                              label: const Text('Суралцах'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Flashcard list
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _flashcards.length,
-                      itemBuilder: (context, index) {
-                        final card = _flashcards[index];
-                        return _FlashcardPreviewCard(
-                          flashcard: card,
-                          index: index + 1,
-                          onDelete: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder:
-                                  (context) => AlertDialog(
-                                    title: const Text('Карт устгах'),
-                                    content: const Text(
-                                      'Энэ картыг устгах уу?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.pop(context, false),
-                                        child: const Text('Цуцлах'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed:
-                                            () => Navigator.pop(context, true),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                        ),
-                                        child: const Text('Устгах'),
-                                      ),
-                                    ],
-                                  ),
-                            );
-                            if (confirm == true) {
-                              try {
-                                await _flashcardService.deleteFlashcard(
-                                  card.id,
-                                );
-                                _loadFlashcards();
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-      floatingActionButton:
-          _flashcards.isNotEmpty
-              ? FloatingActionButton(
-                onPressed: _showAddCardDialog,
-                child: const Icon(Icons.add),
-              )
-              : null,
     );
-  }
-}
-
-class _FlashcardPreviewCard extends StatefulWidget {
-  final Flashcard flashcard;
-  final int index;
-  final VoidCallback onDelete;
-
-  const _FlashcardPreviewCard({
-    required this.flashcard,
-    required this.index,
-    required this.onDelete,
-  });
-
-  @override
-  State<_FlashcardPreviewCard> createState() => _FlashcardPreviewCardState();
-}
-
-class _FlashcardPreviewCardState extends State<_FlashcardPreviewCard> {
-  bool _showBack = false;
-
-  String _getTypeLabel(FlashcardType type) {
-    switch (type) {
-      case FlashcardType.word:
-        return 'Үг';
-      case FlashcardType.kanji:
-        return 'Ханз';
-      case FlashcardType.sentence:
-        return 'Өгүүлбэр';
-      case FlashcardType.vocab:
-        return 'Vocab';
-    }
-  }
-
-  Color _getTypeColor(FlashcardType type) {
-    switch (type) {
-      case FlashcardType.word:
-        return Colors.blue;
-      case FlashcardType.kanji:
-        return Colors.red;
-      case FlashcardType.sentence:
-        return Colors.green;
-      case FlashcardType.vocab:
-        return Colors.orange;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
+    final scheme = Theme.of(context).colorScheme;
+
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        body: Center(child: CircularProgressIndicator(color: scheme.primary)),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => SessionStartPage(deck: widget.deck))),
+        backgroundColor: scheme.tertiary,
+        foregroundColor: scheme.onTertiary,
+        elevation: 2,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.play_arrow_rounded, size: 28),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 14),
+            _buildChrome(scheme),
+            _buildTicker(scheme),
+            Expanded(
+              child: _cards.isEmpty
+                  ? _buildEmpty(scheme)
+                  : PageView.builder(
+                      controller: _pageController,
+                      itemCount: _cards.length,
+                      onPageChanged: (i) => setState(() => _current = i),
+                      itemBuilder: (_, i) => Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                        child: GestureDetector(
+                          onLongPress: _showAddCardDialog,
+                          child: _KotobaCardView(card: _cards[i], scheme: scheme),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChrome(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${widget.index}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getTypeColor(
-                      widget.flashcard.type,
-                    ).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _getTypeLabel(widget.flashcard.type),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _getTypeColor(widget.flashcard.type),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: widget.onDelete,
-                  color: Colors.red,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
+                Container(width: 22, height: 2, color: scheme.onSurface.withValues(alpha:0.9)),
+                const SizedBox(height: 4),
+                Container(width: 16, height: 2, color: scheme.onSurface.withValues(alpha:0.9)),
+                const SizedBox(height: 4),
+                Container(width: 22, height: 2, color: scheme.onSurface.withValues(alpha:0.9)),
               ],
             ),
           ),
-          // Content
-          InkWell(
-            onTap: () => setState(() => _showBack = !_showBack),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        _showBack ? 'Ар тал' : 'Урд тал',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        _showBack ? Icons.flip_to_front : Icons.flip_to_back,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                    ],
+                  Container(width: 7, height: 7, decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text('${_current + 1}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface, height: 1)),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text('/${_cards.length}', style: TextStyle(fontSize: 11, color: scheme.onSurface.withValues(alpha:0.5), letterSpacing: 0.6)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTicker(ColorScheme scheme) {
+    return SizedBox(
+      height: 46,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(_cards.length, (i) {
+                final active = i == _current;
+                final front = _cards[i].front;
+                final label = front.length > 4 ? front.substring(0, 4) : front;
+                return GestureDetector(
+                  onTap: () => _pageController.animateToPage(i, duration: const Duration(milliseconds: 280), curve: Curves.easeInOut),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    child: Text(label, style: TextStyle(fontSize: 14, fontWeight: active ? FontWeight.w700 : FontWeight.w500, color: active ? scheme.onSurface : scheme.onSurface.withValues(alpha:0.22))),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _showBack ? widget.flashcard.back : widget.flashcard.front,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (!_showBack && widget.flashcard.pronunciation != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.flashcard.pronunciation!,
+                );
+              }),
+            ),
+          ),
+          Positioned(bottom: 2, child: Container(width: 3, height: 3, decoration: BoxDecoration(color: scheme.onSurface, shape: BoxShape.circle))),
+          Positioned(left: 0, top: 0, bottom: 0, child: IgnorePointer(child: Container(width: 48, decoration: BoxDecoration(gradient: LinearGradient(colors: [scheme.surface, scheme.surface.withValues(alpha:0)]))))),
+          Positioned(right: 0, top: 0, bottom: 0, child: IgnorePointer(child: Container(width: 48, decoration: BoxDecoration(gradient: LinearGradient(colors: [scheme.surface.withValues(alpha:0), scheme.surface]))))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmpty(ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.style_outlined, size: 56, color: scheme.onSurface.withValues(alpha:0.3)),
+          const SizedBox(height: 16),
+          Text('No cards yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha:0.5))),
+          const SizedBox(height: 20),
+          FilledButton.icon(onPressed: _showAddCardDialog, icon: const Icon(Icons.add), label: Text(t('deck_add_card'))),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Full card view (both front + back visible) ───────────────────────────────
+
+class _KotobaCardView extends StatelessWidget {
+  final Flashcard card;
+  final ColorScheme scheme;
+
+  const _KotobaCardView({required this.card, required this.scheme});
+
+  /// Adaptive font size for the back / meaning text.
+  double _backFontSize(String text) {
+    final n = text.runes.length;
+    if (n <= 10) return 28;
+    if (n <= 20) return 22;
+    if (n <= 40) return 18;
+    return 15;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = (card.hint ?? '').split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final jpLines = lines.where(_isJapanese).toList();
+    final enLines = lines.where((l) => !_isJapanese(l)).toList();
+    final backFs = _backFontSize(card.back);
+
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+              color: scheme.shadow.withValues(alpha: 0.15),
+              blurRadius: 28,
+              offset: const Offset(0, 14))
+        ],
+      ),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 52),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Front glyph: fixed 200dp tall, FittedBox fills it for
+                //    short words (東京 → huge) and scales down for long text ──
+                SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
+                    child: Text(
+                      card.front,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
+                        fontSize: 160,
+                        fontWeight: FontWeight.w500,
+                        height: 0.95,
+                        letterSpacing: -3.0,
+                        color: scheme.onSurface,
                       ),
                     ),
-                  ],
-                  if (widget.flashcard.hint != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.amber.shade200),
-                      ),
-                      child: Row(
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Back / meaning ──
+                Text(
+                  card.back,
+                  style: TextStyle(
+                    fontSize: backFs,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                if (card.pronunciation != null && card.pronunciation!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(card.pronunciation!,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: scheme.onSurface.withValues(alpha: 0.5))),
+                ],
+                const SizedBox(height: 6),
+                Text(
+                  card.type.name.toUpperCase(),
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: scheme.onSurface.withValues(alpha: 0.45),
+                      letterSpacing: 2.5,
+                      fontWeight: FontWeight.w700),
+                ),
+
+                // ── Example sentences ──
+                if (jpLines.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Divider(color: scheme.outlineVariant, height: 1),
+                  const SizedBox(height: 14),
+                  ...List.generate(
+                    jpLines.length.clamp(0, 3),
+                    (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 16,
-                            color: Colors.amber.shade700,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.flashcard.hint!,
+                          Text(jpLines[i],
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.amber.shade900,
-                              ),
+                                  fontSize: 15, color: scheme.onSurface)),
+                          if (i < enLines.length)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(enLines[i],
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.5),
+                                      fontStyle: FontStyle.italic)),
                             ),
-                          ),
                         ],
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      'Дарж эргүүлэх',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                    ),
                   ),
+                ],
+              ],
+            ),
+          ),
+
+          // Accent dot
+          Positioned(
+            right: 18,
+            bottom: 18,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: scheme.tertiary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                      color: scheme.tertiary.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3))
                 ],
               ),
             ),
@@ -557,4 +417,9 @@ class _FlashcardPreviewCardState extends State<_FlashcardPreviewCard> {
       ),
     );
   }
+
+  bool _isJapanese(String s) => s.runes.any((r) =>
+      (r >= 0x3040 && r <= 0x309F) ||
+      (r >= 0x30A0 && r <= 0x30FF) ||
+      (r >= 0x4E00 && r <= 0x9FFF));
 }

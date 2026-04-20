@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -type f -name \"*.dart\" -exec wc -l {} +)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(where python *)",
+      "Bash(where node *)",
+      "Bash(where py *)",
+      "Bash(powershell -Command ' *)",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command ' *)",
+      "Bash(dart --version)",
+      "Bash(flutter --version)",
+      "Bash(/c/Users/bilgu/AppData/Local/Programs/Python/Python313/python.exe -c ' *)",
+      "Bash(/c/flutter/bin/flutter.bat analyze *)",
+      "Bash(flutter analyze *)",
+      "Bash(cmd /c \"flutter analyze lib/data/models/flashcard_models.dart lib/services/flashcard_service.dart lib/components/flashcard/flashcard-list.dart lib/components/flashcard/deck_preview.dart lib/view/pages/study-session/index.dart 2>&1\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/Flutter/bin:/c/Users/bilgu/AppData/Local/Pub/Cache/bin\")",
+      "Bash(dangerouslyDisableSandbox=true /c/flutter/bin/flutter.bat analyze lib/data/models/flashcard_models.dart lib/services/flashcard_service.dart lib/components/flashcard/flashcard-list.dart lib/components/flashcard/deck_preview.dart lib/view/pages/study-session/index.dart)",
+      "Bash(C:\\\\flutter\\\\bin\\\\flutter.bat analyze *)",
+      "Bash(findstr /i \"error\")",
+      "Bash(findstr /v \"withOpacity\\\\|deprecated\\\\|file_names\\\\|use_build_context\")",
+      "Bash(\"/c/flutter/bin/flutter.bat\" analyze *)",
+      "Bash(\"/c/flutter/bin/dart.bat\" analyze *)"
+    ]
+  }
+}

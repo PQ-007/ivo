@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String titleText; // Add a field for the title
-  final StatelessWidget button1;
-  final StatelessWidget button2;
+  final Widget button1;
+  final Widget button2;
   const MyAppBar({
     super.key,
     required this.button1,

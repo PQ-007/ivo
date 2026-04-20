@@ -1,11 +1,11 @@
 // lib/view/pages/library/index.dart
-// Fixed version with proper tab lifecycle management
 
 import 'package:flutter/material.dart';
 import 'package:ivo/components/buttons/profile_nav_button.dart';
 import 'package:ivo/components/buttons/settings_nav_button.dart';
 import 'package:ivo/components/common/app_bar.dart';
 import 'package:ivo/components/flashcard/flashcard-list.dart';
+import 'package:ivo/data/l10n.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -24,25 +24,27 @@ class _LibraryPageState extends State<LibraryPage> {
         appBar: MyAppBar(
           button1: SettingsNavButton(),
           button2: ProfileNavButton(),
-          titleText: "Миний сан",
+          titleText: t('library_title'),
         ),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            // Custom tab bar
             Container(
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
-                  _buildTab('Нийтлэл', 0),
-                  _buildTab('Флаш карт', 1),
-                  _buildTab('Аудио карт', 2),
+                  _buildTab(t('library_tab_articles'), 0),
+                  _buildTab(t('library_tab_flashcards'), 1),
+                  _buildTab(t('library_tab_audio'), 2),
                 ],
               ),
             ),
-            // Tab content
             Expanded(
               child: IndexedStack(
                 index: _currentIndex,
@@ -61,19 +63,17 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Widget _buildTab(String label, int index) {
     final isSelected = _currentIndex == index;
+    final scheme = Theme.of(context).colorScheme;
+
     return Expanded(
       child: InkWell(
-        onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: () => setState(() => _currentIndex = index),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isSelected ? Colors.blue : Colors.transparent,
+                color: isSelected ? scheme.primary : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -84,7 +84,7 @@ class _LibraryPageState extends State<LibraryPage> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.blue : Colors.grey.shade700,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
               ),
             ),
           ),

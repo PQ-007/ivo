@@ -11,7 +11,7 @@ List<Widget> pages = [
   HomePage(),
   ArticlePage(),
   DictionaryPage(),
-  PvPPage(),
+  StatsPage(),
   LibraryPage(),
 ];
 

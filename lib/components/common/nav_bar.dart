@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:ivo/data/l10n.dart';
 import 'package:ivo/data/notifiers.dart';
+import 'package:ivo/view/pages/add-page/index.dart';
 
 class MyNavbar extends StatelessWidget {
   const MyNavbar({super.key});
@@ -27,11 +29,11 @@ class MyNavbar extends StatelessWidget {
           children: [
             FBottomNavigationBarItem(
               icon: const Icon(FIcons.house),
-              label: const Text('Нүүр'),
+              label: Text(t('nav_home')),
             ),
             FBottomNavigationBarItem(
               icon: const Icon(FIcons.telescope),
-              label: const Text('Нийтлэл'),
+              label: Text(t('nav_articles')),
             ),
             FButton.icon(
               style: FButtonStyle.ghost(),
@@ -46,12 +48,12 @@ class MyNavbar extends StatelessWidget {
             ),
 
             FBottomNavigationBarItem(
-              icon: const Icon(FIcons.swords),
-              label: const Text('Халз ханз'),
+              icon: const Icon(FIcons.chartBar),
+              label: Text(t('nav_stats')),
             ),
             FBottomNavigationBarItem(
               icon: const Icon(FIcons.libraryBig),
-              label: const Text('Сан'),
+              label: Text(t('nav_library')),
             ),
           ],
         );
@@ -84,10 +86,10 @@ void _showAddSelectionBottomSheet(BuildContext context) {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.style),
-              title: const Text('Картын багц'),
+              title: Text(t('add_deck_title')),
               onTap: () {
                 Navigator.pop(context);
-                selectedAddPageNotifier.value = 'Deck';
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AddDeckPage()));
               },
             ),
             ListTile(

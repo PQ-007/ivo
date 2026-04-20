@@ -21,4 +21,9 @@ Future<AuthResponse> signUpWithEmailPassword(String email, String password) {
     final user = session?.user;
     return user?.email;
   }
+
+  Future<void> resetPassword(String email) {
+    return _supabase.auth.resetPasswordForEmail(email);
+  }
 }
+

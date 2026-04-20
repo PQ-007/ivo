@@ -578,4 +578,27 @@ class JishoDB {
     await _wordDb?.close();
     await _kanjiDb?.close();
   }
+
+  /// Returns a random dictionary entry for the "Word of the Day" widget.
+  static Future<Map<String, dynamic>?> getRandomWord() async {
+    final db = _wordDb;
+    if (db == null) return null;
+    try {
+      // Pick a random entry that has both a kanji form and at least one gloss
+      final rows = await db.rawQuery('''
+        SELECT DISTINCT e.id
+        FROM entry e
+        JOIN k_ele k ON k.id_entry = e.id
+        JOIN sense s ON s.id_entry = e.id
+        JOIN gloss g ON g.id_sense = s.id
+        ORDER BY RANDOM()
+        LIMIT 1
+      ''');
+      if (rows.isEmpty) return null;
+      final entryId = rows.first['id'] as int;
+      return _getEntryDetails(entryId);
+    } catch (e) {
+      return null;
+    }
+  }
 }

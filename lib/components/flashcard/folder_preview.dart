@@ -29,7 +29,8 @@ class _FolderViewPageState extends State<FolderPreview> {
   Future<void> _loadDecks() async {
     setState(() => _isLoading = true);
     try {
-      final decks = await _flashcardService.getDecks(folderId: widget.folder.id);
+      final decks = await _flashcardService.getDecks();
+      // TODO: filter by folder once folder-deck relationship is wired in the DB
       setState(() {
         _decks = decks;
         _isLoading = false;
@@ -82,7 +83,6 @@ class _FolderViewPageState extends State<FolderPreview> {
                   descController.text.trim().isEmpty
                       ? null
                       : descController.text.trim(),
-                  widget.folder.id,
                 );
                 if (mounted) {
                   Navigator.pop(context);

@@ -15,10 +15,9 @@ void main() async {
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   print('Initializing database...');
- 
   runApp(const MyApp());
 }
- 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -31,14 +30,18 @@ class MyApp extends StatelessWidget {
         // Select theme based on isDark value
         final theme = isDark ? blueDark : blueLight;
 
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          builder: (_, child) => FAnimatedTheme(data: theme, child: child!),
-          home: const AuthGate(),
-          theme: theme.toApproximateMaterialTheme(),
+        return ValueListenableBuilder<String>(
+          valueListenable: languageNotifier,
+          builder:
+              (_, __, ___) => MaterialApp(
+                debugShowCheckedModeBanner: false,
+                builder:
+                    (_, child) => FAnimatedTheme(data: theme, child: child!),
+                home: const AuthGate(),
+                theme: theme.toApproximateMaterialTheme(),
+              ),
         );
       },
     );
   }
 }
-
