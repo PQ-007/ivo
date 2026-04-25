@@ -43,6 +43,7 @@ const _s = {
     'library_no_decks': 'Дэк байхгүй байна',
     'library_no_decks_sub': 'Эхний deck-ээ үүсгээд эхлээрэй.',
     'library_create_deck': 'Дэк үүсгэх',
+    'library_no_saved_articles': 'Нийтлэл хадгалаагүй байна. Нийтлэлийн хуудаснаас хадгалаарай.',
 
     // Deck / Study
     'deck_study': 'Судлах',
@@ -181,6 +182,7 @@ const _s = {
     'library_no_decks': 'No decks yet',
     'library_no_decks_sub': 'Create your first deck to get started.',
     'library_create_deck': 'Create deck',
+    'library_no_saved_articles': 'No saved articles yet. Bookmark articles from the Articles tab.',
 
     // Deck / Study
     'deck_study': 'Study',
@@ -319,6 +321,7 @@ const _s = {
     'library_no_decks': 'デッキなし',
     'library_no_decks_sub': '最初のデッキを作成しましょう。',
     'library_create_deck': 'デッキを作成',
+    'library_no_saved_articles': '保存された記事はありません。記事タブからブックマークしてください。',
 
     // Deck / Study
     'deck_study': '学習',

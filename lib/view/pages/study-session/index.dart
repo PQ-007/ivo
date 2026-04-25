@@ -95,8 +95,9 @@ class _StudySessionState extends State<StudySessionPage> {
       _       => 3,
     };
 
-    if (rating == 'again') _again++;
-    else if (rating == 'good') _good++;
+    if (rating == 'again') {
+      _again++;
+    } else if (rating == 'good') _good++;
     else if (rating == 'easy') _easy++;
 
     final card = _queue[_current];

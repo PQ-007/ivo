@@ -8,6 +8,10 @@ class JishoDB {
   static Database? _wordDb;
   static Database? _kanjiDb;
 
+  // Simple in-memory entry cache (capped at 200 entries)
+  static final Map<int, Map<String, dynamic>> _entryCache = {};
+  static const int _cacheMaxSize = 200;
+
   static Future<void> init() async {
     _wordDb = await _initDatabase('jmdict.db');
     _kanjiDb = await _initDatabase('kanji.db');
@@ -152,13 +156,10 @@ class JishoDB {
       await _searchEnglish(db, originalQuery, addCandidates, seenIds);
     }
 
-    // Batch-fetch details for unique candidates (limit final results)
+    // Batch-fetch details for unique candidates (5 queries instead of N×7)
     if (candidateIds.isNotEmpty) {
-      final detailsFutures = candidateIds
-          .take(30)
-          .map((id) => _getEntryDetails(id)); // Strict limit
-      final details = await Future.wait(detailsFutures);
-      results.addAll(details.whereType<Map<String, dynamic>>());
+      final details = await _batchGetEntryDetails(candidateIds.take(30).toList());
+      results.addAll(details);
     }
 
     return results;
@@ -252,83 +253,6 @@ class JishoDB {
       }
     } catch (e) {
       print('Error in English search: $e');
-    }
-  }
-
-  /// Get full entry details with all senses
-  static Future<Map<String, dynamic>?> _getEntryDetails(int entryId) async {
-    final db = _wordDb!;
-    try {
-      // Get all kanji forms
-      final kanjiList = await db.rawQuery(
-        'SELECT keb FROM k_ele WHERE id_entry = ? ORDER BY id',
-        [entryId],
-      );
-      // Get all reading forms
-      final readingList = await db.rawQuery(
-        'SELECT reb FROM r_ele WHERE id_entry = ? ORDER BY id',
-        [entryId],
-      );
-      // Get all senses with their data
-      final senses = await db.rawQuery(
-        'SELECT DISTINCT id FROM sense WHERE id_entry = ? ORDER BY id',
-        [entryId],
-      );
-      if (kanjiList.isEmpty && readingList.isEmpty) return null;
-      List<Map<String, dynamic>> sensesWithDetails = [];
-      for (var sense in senses) {
-        final senseId = sense['id'] as int;
-        // Get POS
-        final posList = await db.rawQuery(
-          '''
-          SELECT p.name
-          FROM sense_pos sp
-          JOIN pos p ON p.id = sp.id_pos
-          WHERE sp.id_sense = ?
-        ''',
-          [senseId],
-        );
-        // Get glosses
-        final glossList = await db.rawQuery(
-          'SELECT content FROM gloss WHERE id_sense = ?',
-          [senseId],
-        );
-        // Get misc info
-        final miscList = await db.rawQuery(
-          '''
-          SELECT m.name
-          FROM sense_misc sm
-          JOIN misc m ON m.id = sm.id_misc
-          WHERE sm.id_sense = ?
-        ''',
-          [senseId],
-        );
-        // Get dialect info
-        final dialList = await db.rawQuery(
-          '''
-          SELECT d.name
-          FROM sense_dial sd
-          JOIN dial d ON d.id = sd.id_dial
-          WHERE sd.id_sense = ?
-        ''',
-          [senseId],
-        );
-        sensesWithDetails.add({
-          'pos': posList.map((p) => p['name']).toList(),
-          'glosses': glossList.map((g) => g['content']).toList(),
-          'misc': miscList.map((m) => m['name']).toList(),
-          'dial': dialList.map((d) => d['name']).toList(),
-        });
-      }
-      return {
-        'id': entryId,
-        'kanji': kanjiList.map((k) => k['keb']).toList(),
-        'reading': readingList.map((r) => r['reb']).toList(),
-        'senses': sensesWithDetails,
-      };
-    } catch (e) {
-      print('Error getting entry details for $entryId: $e');
-      return null;
     }
   }
 
@@ -596,9 +520,131 @@ class JishoDB {
       ''');
       if (rows.isEmpty) return null;
       final entryId = rows.first['id'] as int;
-      return _getEntryDetails(entryId);
+      final results = await _batchGetEntryDetails([entryId]);
+      return results.isNotEmpty ? results.first : null;
     } catch (e) {
       return null;
     }
+  }
+
+  /// Batch-fetch full entry details for multiple IDs in 5 queries instead of N×7.
+  /// Results are cached in [_entryCache].
+  static Future<List<Map<String, dynamic>>> _batchGetEntryDetails(
+      List<int> ids) async {
+    final db = _wordDb!;
+    if (ids.isEmpty) return [];
+
+    // Serve from cache where possible
+    final uncachedIds = <int>[];
+    final fromCache = <int, Map<String, dynamic>>{};
+    for (final id in ids) {
+      if (_entryCache.containsKey(id)) {
+        fromCache[id] = _entryCache[id]!;
+      } else {
+        uncachedIds.add(id);
+      }
+    }
+
+    if (uncachedIds.isNotEmpty) {
+      final ph = uncachedIds.map((_) => '?').join(',');
+
+      // 1. Kanji forms
+      final kanjiRows = await db.rawQuery(
+        'SELECT id_entry, keb FROM k_ele WHERE id_entry IN ($ph) ORDER BY id',
+        uncachedIds,
+      );
+      // 2. Reading forms
+      final readingRows = await db.rawQuery(
+        'SELECT id_entry, reb FROM r_ele WHERE id_entry IN ($ph) ORDER BY id',
+        uncachedIds,
+      );
+      // 3. Sense IDs
+      final senseRows = await db.rawQuery(
+        'SELECT id, id_entry FROM sense WHERE id_entry IN ($ph) ORDER BY id_entry, id',
+        uncachedIds,
+      );
+
+      final kanjiByEntry = <int, List<String>>{};
+      for (final r in kanjiRows) {
+        kanjiByEntry
+            .putIfAbsent(r['id_entry'] as int, () => [])
+            .add(r['keb'] as String);
+      }
+      final readingByEntry = <int, List<String>>{};
+      for (final r in readingRows) {
+        readingByEntry
+            .putIfAbsent(r['id_entry'] as int, () => [])
+            .add(r['reb'] as String);
+      }
+
+      final sensesByEntry = <int, List<Map<String, dynamic>>>{};
+
+      if (senseRows.isNotEmpty) {
+        final senseIds = senseRows.map((r) => r['id'] as int).toList();
+        final sPh = senseIds.map((_) => '?').join(',');
+
+        // 4. Glosses
+        final glossRows = await db.rawQuery(
+          'SELECT id_sense, content FROM gloss WHERE id_sense IN ($sPh)',
+          senseIds,
+        );
+        // 5. POS
+        final posRows = await db.rawQuery(
+          '''SELECT sp.id_sense, p.name
+             FROM sense_pos sp
+             JOIN pos p ON p.id = sp.id_pos
+             WHERE sp.id_sense IN ($sPh)''',
+          senseIds,
+        );
+
+        final glossBySense = <int, List<String>>{};
+        for (final r in glossRows) {
+          glossBySense
+              .putIfAbsent(r['id_sense'] as int, () => [])
+              .add(r['content'] as String);
+        }
+        final posBySense = <int, List<String>>{};
+        for (final r in posRows) {
+          posBySense
+              .putIfAbsent(r['id_sense'] as int, () => [])
+              .add(r['name'] as String);
+        }
+
+        for (final r in senseRows) {
+          final senseId = r['id'] as int;
+          final entryId = r['id_entry'] as int;
+          sensesByEntry.putIfAbsent(entryId, () => []).add({
+            'pos': posBySense[senseId] ?? [],
+            'glosses': glossBySense[senseId] ?? [],
+            'misc': <String>[],
+            'dial': <String>[],
+          });
+        }
+      }
+
+      // Cache and collect results
+      for (final id in uncachedIds) {
+        final k = kanjiByEntry[id] ?? [];
+        final r = readingByEntry[id] ?? [];
+        if (k.isEmpty && r.isEmpty) continue;
+        final entry = {
+          'id': id,
+          'kanji': k,
+          'reading': r,
+          'senses': sensesByEntry[id] ?? [],
+        };
+        if (_entryCache.length >= _cacheMaxSize) {
+          _entryCache.remove(_entryCache.keys.first);
+        }
+        _entryCache[id] = entry;
+        fromCache[id] = entry;
+      }
+    }
+
+    // Return in original order, skipping any that had no data
+    return ids
+        .map((id) => fromCache[id])
+        .whereType<Map<String, dynamic>>()
+        .toList();
   }
 }

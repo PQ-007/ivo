@@ -102,7 +102,7 @@ class _AddDeckPageState extends State<AddDeckPage> {
                 title: Text(t('add_deck_public')),
                 value: _isPublic,
                 onChanged: (v) => setState(() => _isPublic = v),
-                activeColor: scheme.primary,
+                activeThumbColor: scheme.primary,
               ),
             ),
             const SizedBox(height: 32),

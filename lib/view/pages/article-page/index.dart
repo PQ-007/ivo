@@ -17,7 +17,7 @@ class _ArticlePageState extends State<ArticlePage> {
   String _selectedLevel = 'All';
   final _levels = ['All', 'N5', 'N4', 'N3', 'N2', 'N1'];
 
-  List<Article> get _filtered => _service.getArticles(level: _selectedLevel);
+  Future<List<Article>> get _filtered => _service.getArticles(level: _selectedLevel);
 
   @override
   Widget build(BuildContext context) {
@@ -66,22 +66,46 @@ class _ArticlePageState extends State<ArticlePage> {
 
           // ── Article list ────────────────────────────────────────────────
           Expanded(
-            child: _filtered.isEmpty
-                ? Center(
-                    child: Text(t('articles_empty'),
-                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 16)))
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 40),
-                    itemCount: _filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _ArticleCard(
-                      article: _filtered[i],
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ArticleDetailPage(article: _filtered[i])),
-                      ),
+            child: FutureBuilder<List<Article>>(
+              future: _filtered,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      t('articles_empty'),
+                      style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 16),
+                    ),
+                  );
+                }
+
+                final articles = snapshot.data ?? const <Article>[];
+                if (articles.isEmpty) {
+                  return Center(
+                    child: Text(
+                      t('articles_empty'),
+                      style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 40),
+                  itemCount: articles.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) => _ArticleCard(
+                    article: articles[i],
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ArticleDetailPage(article: articles[i])),
                     ),
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),

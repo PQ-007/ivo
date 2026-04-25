@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class DictionaryResultsList extends StatelessWidget {
   final List<Map<String, dynamic>> results;
   final String resultType;
+  final void Function(Map<String, dynamic> entry)? onSave;
 
   const DictionaryResultsList({
     super.key,
     required this.results,
     required this.resultType,
+    this.onSave,
   });
 
   @override
@@ -44,41 +46,55 @@ class DictionaryResultsList extends StatelessWidget {
           },
           child: Container(
             color: index < 3 ? Colors.blue.withOpacity(0.05) : null,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10, right: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  spacing: 8,
-                  children: [
-                    if (kanji.isNotEmpty)
-                      Text(
-                        kanji.first,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.end,
+                        spacing: 8,
+                        children: [
+                          if (kanji.isNotEmpty)
+                            Text(
+                              kanji.first,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          if (reading.isNotEmpty)
+                            Text(
+                              '【${reading.first}】',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
                       ),
-                    if (reading.isNotEmpty)
-                      Text(
-                        '【${reading.first}】',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                      if (meaning.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            meaning,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14, height: 1.4),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-                if (meaning.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      meaning,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, height: 1.4),
-                    ),
+                if (onSave != null)
+                  IconButton(
+                    icon: const Icon(Icons.bookmark_add_outlined),
+                    color: Colors.blueAccent,
+                    tooltip: 'Save to deck',
+                    onPressed: () => onSave!(entry),
                   ),
               ],
             ),

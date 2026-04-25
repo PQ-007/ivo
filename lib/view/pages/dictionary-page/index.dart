@@ -5,6 +5,7 @@ import 'package:ivo/components/buttons/dark_mode_button.dart';
 import 'package:ivo/components/buttons/settings_nav_button.dart';
 import 'package:ivo/components/dictionary/ocr_scanner.dart';
 import 'package:ivo/components/dictionary/result_list.dart';
+import 'package:ivo/components/dictionary/save_to_deck_sheet.dart';
 import 'package:ivo/components/dictionary/search_bar.dart';
 import 'package:ivo/components/dictionary/drawing_keyboard.dart';
 import 'package:ivo/components/dictionary/empty_state.dart';
@@ -294,6 +295,7 @@ class _DictionaryPageState extends State<DictionaryPage> {
     return DictionaryResultsList(
       results: _searchResults,
       resultType: _resultType,
+      onSave: (entry) => showSaveToDeckSheet(context, entry),
     );
   }
 }

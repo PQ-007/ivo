@@ -117,7 +117,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: Text(t('settings_dark_mode')),
                 value: dark,
                 onChanged: (v) => isDarkThemeNotifier.value = v,
-                activeColor: scheme.primary,
+                activeThumbColor: scheme.primary,
               ),
             ),
           ]),

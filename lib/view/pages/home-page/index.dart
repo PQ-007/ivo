@@ -172,56 +172,80 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWordCard(ColorScheme scheme, Map<String, dynamic> entry) {
-    final kanji = (entry['kanji'] as List?)?.firstOrNull?.toString() ?? '';
+    final kanji   = (entry['kanji']   as List?)?.firstOrNull?.toString() ?? '';
     final reading = (entry['reading'] as List?)?.firstOrNull?.toString() ?? '';
-    final senses = entry['senses'] as List? ?? [];
+    final senses  = entry['senses']   as List? ?? [];
     final glosses = senses.isNotEmpty
-        ? (senses.first['glosses'] as List?)?.take(2).join(', ') ?? ''
-        : '';
+        ? (senses.first['glosses'] as List?)?.take(2).join(', ') ?? '' : '';
     final pos = senses.isNotEmpty
-        ? (senses.first['pos'] as List?)?.firstOrNull?.toString() ?? ''
-        : '';
+        ? (senses.first['pos'] as List?)?.firstOrNull?.toString() ?? '' : '';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: scheme.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(kanji,
-              style: TextStyle(fontSize: 56, fontWeight: FontWeight.w500, height: 1.0, color: scheme.onSurface)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (glosses.isNotEmpty)
-                  Text(glosses,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: scheme.onSurface)),
-                if (reading.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(reading,
-                      style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.55))),
-                ],
-                if (pos.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(pos.toUpperCase(),
-                        style: TextStyle(fontSize: 9, color: scheme.onPrimaryContainer,
-                            letterSpacing: 1.5, fontWeight: FontWeight.w700)),
+          // ── Top row: reading (left) + type badge (right) ──
+          Row(
+            children: [
+              if (reading.isNotEmpty)
+                Expanded(
+                  child: Text(reading,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: scheme.onSurface.withValues(alpha: 0.5))),
+                ),
+              if (pos.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(99),
                   ),
-                ],
-              ],
+                  child: Text(pos.toUpperCase(),
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: scheme.onPrimaryContainer,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // ── Kanji glyph — fixed height, FittedBox scales down long words ──
+          SizedBox(
+            height: 72,
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                kanji,
+                style: TextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    color: scheme.onSurface),
+              ),
             ),
           ),
+          const SizedBox(height: 8),
+
+          // ── Meaning ──
+          if (glosses.isNotEmpty)
+            Text(glosses,
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface)),
         ],
       ),
     );
