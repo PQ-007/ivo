@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:forui/theme.dart';
 import 'package:ivo/data/notifiers.dart';
-import 'package:ivo/services/auth/auth_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/dark_theme.dart';
 import 'theme/light_theme.dart';
+import 'package:ivo/view/widget_tree.dart';
 
 void main() async {
   // supabase setup
@@ -34,12 +34,13 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           builder: (_, child) => FAnimatedTheme(data: theme, child: child!),
-          home: const AuthGate(),
+          home: const WidgetTree(),
           theme: theme.toApproximateMaterialTheme(),
         );
       },
     );
   }
 }
+
 
 

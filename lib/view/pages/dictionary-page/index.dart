@@ -37,10 +37,23 @@ class _DictionaryPageState extends State<DictionaryPage> {
   void initState() {
     super.initState();
     _initializeDatabase();
+    // Close the drawing pad when the search field gains focus (system keyboard
+    // opening) so the two input methods don't overlap and block each other.
+    _searchFocusNode.addListener(_onSearchFocusChange);
+  }
+
+  void _onSearchFocusChange() {
+    if (_searchFocusNode.hasFocus && _showDrawPad) {
+      setState(() {
+        _showDrawPad = false;
+        _recognitionResults = [];
+      });
+    }
   }
 
   @override
   void dispose() {
+    _searchFocusNode.removeListener(_onSearchFocusChange);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();

@@ -1,6 +1,8 @@
 // File: lib/components/dictionary/MyDrawingPad.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:ivo/components/dictionary/kanji_recognizer.dart';
+import 'package:ivo/services/handwriting/handwriting_service.dart';
 
 class DrawingPad extends StatefulWidget {
   final Function(Map<String, dynamic>)? onRecognitionComplete;
@@ -19,48 +21,58 @@ class _DrawingPadState extends State<DrawingPad> {
   List<Offset?> _drawingPoints = [];
   bool _showGrid = true;
   bool _isProcessing = false;
+  bool _pending = false;
+  Timer? _debounce;
 
-  void _onSearch() async {
+  @override
+  void initState() {
+    super.initState();
+    // Warm up engines: offline templates always, plus the ink model if online.
+    HandwritingService.instance.warmUp();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  // Recognize automatically a short moment after the last stroke, so fast
+  // multi-stroke writing doesn't fire the recognizer on every stroke.
+  void _scheduleRecognition() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _recognize);
+  }
+
+  Future<void> _recognize() async {
     if (_drawingPoints.isEmpty) return;
-
-    setState(() {
-      _isProcessing = true;
-    });
-
+    // Guard against overlapping calls; re-run once if strokes changed meanwhile.
+    if (_isProcessing) {
+      _pending = true;
+      return;
+    }
+    _isProcessing = true;
     try {
-      final recognizer = MyKanjiRecognizer();
-      await recognizer.loadModel();
-
-      final grayImage = await convertDrawingToGrayscaleImage(
-        _drawingPoints,
-        64,
-      );
-      final result = recognizer.predict(grayImage);
-
-      recognizer.close();
-
-      // Notify parent with recognition results
-      if (widget.onRecognitionComplete != null) {
-        widget.onRecognitionComplete!(result);
-      }
+      final result =
+          await HandwritingService.instance.recognize(_drawingPoints);
+      widget.onRecognitionComplete?.call(result);
     } catch (e) {
-      print('Error during recognition: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      debugPrint('Handwriting recognition error: $e');
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      _isProcessing = false;
+      if (_pending) {
+        _pending = false;
+        _scheduleRecognition();
+      }
     }
   }
 
   void _clearDrawing() {
+    _debounce?.cancel();
     setState(() {
       _drawingPoints = [];
     });
+    widget.onClear(); // also clear the recognition carousel
   }
 
   void _toggleGrid() {
@@ -127,6 +139,7 @@ class _DrawingPadState extends State<DrawingPad> {
                       setState(() {
                         _drawingPoints = List.from(_drawingPoints)..add(null);
                       });
+                      _scheduleRecognition();
                     },
                     child: CustomPaint(
                       painter: _DrawingPainter(_drawingPoints, isDark: isDark),
@@ -162,26 +175,11 @@ class _DrawingPadState extends State<DrawingPad> {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: Row(
-                      children: [
-                        _buildActionButton(
-                          icon: Icons.refresh,
-                          label: 'Устгах',
-                          onPressed: _clearDrawing,
-                          isPrimary: false,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildActionButton(
-                          icon:
-                              _isProcessing
-                                  ? Icons.hourglass_empty
-                                  : Icons.search,
-                          label:
-                              _isProcessing ? 'Боловсруулж байна...' : 'Хайх',
-                          onPressed: _isProcessing ? null : _onSearch,
-                          isPrimary: true,
-                        ),
-                      ],
+                    child: _buildActionButton(
+                      icon: Icons.refresh,
+                      label: 'Устгах',
+                      onPressed: _clearDrawing,
+                      isPrimary: false,
                     ),
                   ),
 

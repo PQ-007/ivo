@@ -45,11 +45,11 @@ dependencies:
   forui_assets: ^0.16.0
   supabase_flutter: ^2.10.3
   flutter_dotenv: ^6.0.0
-  tflite_flutter: ^0.11.0
-  image: ^4.5.4          
   image_picker: ^1.0.4
-  google_mlkit_text_recognition: ^0.11.0
-       
+  google_mlkit_text_recognition: ^0.15.0
+  google_mlkit_digital_ink_recognition: ^0.14.0
+  connectivity_plus: ^6.1.0
+
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
@@ -81,8 +81,7 @@ flutter:
     - .env
     - assets/db/jmdict.db
     - assets/db/kanji.db
-    - assets/ml_models/kanji_model.tflite
-    - assets/ml_models/labels.txt 
+    - assets/kanji_strokes.bin
     - assets/images/
     - assets/lotties/
     - assets/audios/

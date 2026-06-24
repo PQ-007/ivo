@@ -79,21 +79,19 @@ class _RecognitionCarousel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 80,
+            height: 72,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: results.length,
               itemBuilder: (context, index) {
                 final result = results[index];
-                final confidence = (result['confidence'] * 100).toStringAsFixed(
-                  1,
-                );
 
                 return GestureDetector(
                   onTap: () => onKanjiTap(result['kanji']),
                   child: Container(
                     width: 70,
                     margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
@@ -101,26 +99,20 @@ class _RecognitionCarousel extends StatelessWidget {
                         color: Theme.of(context).primaryColor.withOpacity(0.3),
                       ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
+                    // Scale down so multi-character candidates (e.g. イ休)
+                    // fit on one line without overflowing the chip.
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
                           result['kanji'],
+                          maxLines: 1,
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$confidence%',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
