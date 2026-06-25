@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ivo/components/study/save_to_deck.dart';
+import 'package:ivo/services/tts/tts_service.dart';
 
 class DictionaryResultsList extends StatelessWidget {
   final List<Map<String, dynamic>> results;
@@ -33,55 +35,89 @@ class DictionaryResultsList extends StatelessWidget {
                 ? List<String>.from(senses.first['glosses'] ?? []).join('; ')
                 : '';
 
-        return InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => DictionaryEntryDetailPage(entry: entry),
-              ),
-            );
-          },
-          child: Container(
-            color: index < 3 ? Colors.blue.withOpacity(0.05) : null,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  spacing: 8,
-                  children: [
-                    if (kanji.isNotEmpty)
-                      Text(
-                        kanji.first,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+        final front = kanji.isNotEmpty
+            ? kanji.first
+            : (reading.isNotEmpty ? reading.first : '');
+
+        return Container(
+          color: index < 3 ? Colors.blue.withOpacity(0.05) : null,
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DictionaryEntryDetailPage(entry: entry),
                       ),
-                    if (reading.isNotEmpty)
-                      Text(
-                        '【${reading.first}】',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.end,
+                          spacing: 8,
+                          children: [
+                            if (kanji.isNotEmpty)
+                              Text(
+                                kanji.first,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            if (reading.isNotEmpty)
+                              Text(
+                                '【${reading.first}】',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                  ],
-                ),
-                if (meaning.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      meaning,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, height: 1.4),
+                        if (meaning.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              meaning,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 14, height: 1.4),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-              ],
-            ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.volume_up_outlined),
+                tooltip: 'Сонсох',
+                onPressed: front.isEmpty
+                    ? null
+                    : () => TtsService.instance.speak(
+                          reading.isNotEmpty ? reading.first : front,
+                        ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.bookmark_add_outlined),
+                tooltip: 'Багцад нэмэх',
+                onPressed: front.isEmpty
+                    ? null
+                    : () => showSaveToDeckSheet(
+                          context,
+                          front: front,
+                          reading: reading.isNotEmpty ? reading.first : '',
+                          back: meaning,
+                        ),
+              ),
+            ],
           ),
         );
       },

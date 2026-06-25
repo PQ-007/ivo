@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:ivo/components/buttons/profile_nav_button.dart';
 import 'package:ivo/components/buttons/settings_nav_button.dart';
 import 'package:ivo/components/common/app_bar.dart';
+import 'package:ivo/view/pages/study/deck_list.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
@@ -19,14 +20,16 @@ class LibraryPage extends StatelessWidget {
         body: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            FTabs(
-              initialIndex: 0,
-              onPress: (index) {},
-              children: const [
-                FTabEntry(label: Text('Нийтлэл'), child: Text("ok")),
-                FTabEntry(label: Text('Флаш карт'), child: Placeholder()),
-                FTabEntry(label: Text('Аудио карт'), child: Placeholder()),
-              ],
+            Expanded(
+              child: FTabs(
+                initialIndex: 1,
+                onPress: (index) {},
+                children: const [
+                  FTabEntry(label: Text('Нийтлэл'), child: Text("ok")),
+                  FTabEntry(label: Text('Флаш карт'), child: DeckListView()),
+                  FTabEntry(label: Text('Аудио карт'), child: Placeholder()),
+                ],
+              ),
             ),
           ],
         ),

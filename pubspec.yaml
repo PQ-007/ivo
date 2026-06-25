@@ -48,7 +48,11 @@ dependencies:
   image_picker: ^1.0.4
   google_mlkit_text_recognition: ^0.15.0
   google_mlkit_digital_ink_recognition: ^0.14.0
+  google_mlkit_translation: ^0.13.0
+  google_mlkit_language_id: ^0.13.0
   connectivity_plus: ^6.1.0
+  http: ^1.2.0
+  flutter_tts: ^4.2.0
 
 
 dev_dependencies:
